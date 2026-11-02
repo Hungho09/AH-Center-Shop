@@ -1,0 +1,40 @@
+{
+  "name": "ql-cua-hang-tien-loi",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@11.11.0",
+  "description": "QL_CuaHangTienLoi - Convenience Store Enterprise Monorepo Platform",
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "eslint \"{apps,libs}/**/*.{ts,tsx}\"",
+    "test": "turbo run test",
+    "test:cov": "turbo run test -- --coverage",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
+    "dev:gateway": "turbo run dev --filter=api-gateway",
+    "dev:identity": "turbo run dev --filter=identity-service",
+    "dev:product": "turbo run dev --filter=product-inventory-service",
+    "dev:purchase": "turbo run dev --filter=purchase-service",
+    "dev:sales": "turbo run dev --filter=sales-service",
+    "dev:customer": "turbo run dev --filter=customer-loyalty-service",
+    "dev:hr": "turbo run dev --filter=hr-service",
+    "dev:loss": "turbo run dev --filter=inventory-loss-service",
+    "dev:web": "turbo run dev --filter=web"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.2.5",
+    "turbo": "^2.0.14",
+    "typescript": "^5.3.3"
+  }
+}

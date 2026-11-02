@@ -1,0 +1,32 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy root configuration and manifests
+COPY package.json package-lock.json* turbo.json tsconfig.base.json tsconfig.json ./
+COPY libs ./libs
+COPY apps ./apps
+
+# Install dependencies and build shared libraries & target app
+RUN npm install
+
+ARG SERVICE_NAME
+ENV SERVICE_NAME=${SERVICE_NAME}
+
+RUN npx turbo run build --filter=${SERVICE_NAME}
+
+# Stage 2: Runtime Runner
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+ARG SERVICE_NAME
+ENV SERVICE_NAME=${SERVICE_NAME}
+ENV NODE_ENV=production
+
+COPY --from=builder /app ./
+
+WORKDIR /app/apps/${SERVICE_NAME}
+
+CMD ["node", "dist/main.js"]
+

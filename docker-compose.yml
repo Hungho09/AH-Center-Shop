@@ -1,0 +1,299 @@
+networks:
+  ql-network:
+    driver: bridge
+
+volumes:
+  sqlserver_data:
+  redis_data:
+  rabbitmq_data:
+
+services:
+  # ==========================================
+  # Infrastructure: Microsoft SQL Server 2019
+  # ==========================================
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: ql-sqlserver
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "${DB_PASSWORD:-YourStrong@Password123}"
+      MSSQL_PID: "Developer"
+    ports:
+      - "${DB_PORT:-1433}:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - ql-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$${SA_PASSWORD}\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ==========================================
+  # Infrastructure: Redis 7
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: ql-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ql-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # Infrastructure: RabbitMQ with Management
+  # ==========================================
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ql-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - ql-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # Application: API Gateway
+  # ==========================================
+  api-gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE_NAME: api-gateway
+    container_name: ql-api-gateway
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      JWT_SECRET: "${JWT_SECRET:-super-secret-development-key-please-replace-in-production}"
+      IDENTITY_SERVICE_URL: http://identity-service:3001
+      PRODUCT_INVENTORY_SERVICE_URL: http://product-inventory-service:3002
+      PURCHASE_SERVICE_URL: http://purchase-service:3003
+      SALES_SERVICE_URL: http://sales-service:3004
+      CUSTOMER_LOYALTY_SERVICE_URL: http://customer-loyalty-service:3005
+      HR_SERVICE_URL: http://hr-service:3006
+      INVENTORY_LOSS_SERVICE_URL: http://inventory-loss-service:3007
+    depends_on:
+      - identity-service
+      - product-inventory-service
+      - sales-service
+    networks:
+      - ql-network
+
+  # ==========================================
+  # Microservice: Identity Service
+  # ==========================================
+  identity-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE_NAME: identity-service
+    container_name: ql-identity-service
+    restart: unless-stopped
+    ports:
+      - "${IDENTITY_PORT:-3001}:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      JWT_SECRET: "${JWT_SECRET:-super-secret-development-key-please-replace-in-production}"
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_USERNAME: sa
+      DB_PASSWORD: "${DB_PASSWORD:-YourStrong@Password123}"
+      DB_NAME: "${DB_NAME:-QL_CuaHangTienLoi}"
+      REDIS_HOST: redis
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    networks:
+      - ql-network
+
+  # ==========================================
+  # Microservice: Product & Inventory Service
+  # ==========================================
+  product-inventory-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE_NAME: product-inventory-service
+    container_name: ql-product-inventory-service
+    restart: unless-stopped
+    ports:
+      - "${PRODUCT_INVENTORY_PORT:-3002}:3002"
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_USERNAME: sa
+      DB_PASSWORD: "${DB_PASSWORD:-YourStrong@Password123}"
+      DB_NAME: "${DB_NAME:-QL_CuaHangTienLoi}"
+      REDIS_HOST: redis
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    networks:
+      - ql-network
+
+  # ==========================================
+  # Microservice: Purchase Service
+  # ==========================================
+  purchase-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE_NAME: purchase-service
+    container_name: ql-purchase-service
+    restart: unless-stopped
+    ports:
+      - "${PURCHASE_PORT:-3003}:3003"
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_USERNAME: sa
+      DB_PASSWORD: "${DB_PASSWORD:-YourStrong@Password123}"
+      DB_NAME: "${DB_NAME:-QL_CuaHangTienLoi}"
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    networks:
+      - ql-network
+
+  # ==========================================
+  # Microservice: Sales Service
+  # ==========================================
+  sales-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE_NAME: sales-service
+    container_name: ql-sales-service
+    restart: unless-stopped
+    ports:
+      - "${SALES_PORT:-3004}:3004"
+    environment:
+      NODE_ENV: production
+      PORT: 3004
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_USERNAME: sa
+      DB_PASSWORD: "${DB_PASSWORD:-YourStrong@Password123}"
+      DB_NAME: "${DB_NAME:-QL_CuaHangTienLoi}"
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    networks:
+      - ql-network
+
+  # ==========================================
+  # Microservice: Customer & Loyalty Service
+  # ==========================================
+  customer-loyalty-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE_NAME: customer-loyalty-service
+    container_name: ql-customer-loyalty-service
+    restart: unless-stopped
+    ports:
+      - "${CUSTOMER_LOYALTY_PORT:-3005}:3005"
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_USERNAME: sa
+      DB_PASSWORD: "${DB_PASSWORD:-YourStrong@Password123}"
+      DB_NAME: "${DB_NAME:-QL_CuaHangTienLoi}"
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    networks:
+      - ql-network
+
+  # ==========================================
+  # Microservice: HR Service
+  # ==========================================
+  hr-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE_NAME: hr-service
+    container_name: ql-hr-service
+    restart: unless-stopped
+    ports:
+      - "${HR_PORT:-3006}:3006"
+    environment:
+      NODE_ENV: production
+      PORT: 3006
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_USERNAME: sa
+      DB_PASSWORD: "${DB_PASSWORD:-YourStrong@Password123}"
+      DB_NAME: "${DB_NAME:-QL_CuaHangTienLoi}"
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    networks:
+      - ql-network
+
+  # ==========================================
+  # Microservice: Inventory Loss Service
+  # ==========================================
+  inventory-loss-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE_NAME: inventory-loss-service
+    container_name: ql-inventory-loss-service
+    restart: unless-stopped
+    ports:
+      - "${INVENTORY_LOSS_PORT:-3007}:3007"
+    environment:
+      NODE_ENV: production
+      PORT: 3007
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_USERNAME: sa
+      DB_PASSWORD: "${DB_PASSWORD:-YourStrong@Password123}"
+      DB_NAME: "${DB_NAME:-QL_CuaHangTienLoi}"
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    networks:
+      - ql-network
+
+  # ==========================================
+  # Frontend Web Client
+  # ==========================================
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: ql-web
+    restart: unless-stopped
+    ports:
+      - "3100:80"
+    environment:
+      VITE_API_URL: http://localhost:3000/api
+    depends_on:
+      - api-gateway
+    networks:
+      - ql-network
