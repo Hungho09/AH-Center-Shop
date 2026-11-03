@@ -13,6 +13,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "experimentalDecorators": true,
 
     /* Linting */
     "strict": true,
@@ -21,7 +22,9 @@
     "noFallthroughCasesInSwitch": true,
 
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@ql/contracts": ["../../libs/contracts/src"],
+      "@ql/contracts/*": ["../../libs/contracts/src/*"]
     }
   },
   "include": ["src"],

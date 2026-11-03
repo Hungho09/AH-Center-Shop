@@ -4,7 +4,8 @@ export * from './constants/queues.constant';
 export * from './decorators/current-user.decorator';
 export * from './decorators/roles.decorator';
 export * from './decorators/public.decorator';
+export * from './decorators/require-permissions.decorator';
+export * from './guards/permissions.guard';
 export * from './interfaces/user-context.interface';
 export * from './interfaces/api-response.interface';
 export * from './interfaces/health.interface';
-

@@ -19,37 +19,50 @@ import {
   Menu,
   X,
   Store,
+  LucideIcon,
 } from 'lucide-react';
-import { useAuthStore } from '../../stores/auth.store';
+import { useAuth } from '../auth-context';
+import { Permission } from '@ql/contracts';
 import { cn } from '../../utils/cn';
 
-const navigationItems = [
+interface NavItem {
+  name: string;
+  path: string;
+  icon: LucideIcon;
+  permission?: Permission;
+}
+
+const navigationItems: NavItem[] = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'Sản phẩm', path: '/products', icon: Package },
-  { name: 'Danh mục hàng hóa', path: '/categories', icon: Layers },
-  { name: 'Nhập hàng', path: '/purchases', icon: Truck },
-  { name: 'Bán hàng (POS)', path: '/pos', icon: ShoppingCart },
-  { name: 'Hóa đơn', path: '/invoices', icon: Receipt },
-  { name: 'Khách hàng', path: '/customers', icon: Users },
-  { name: 'Thành viên', path: '/loyalty', icon: Award },
-  { name: 'Nhân viên', path: '/employees', icon: UserCheck },
-  { name: 'Ca làm việc', path: '/shifts', icon: Clock },
-  { name: 'Phân ca', path: '/shift-assignments', icon: CalendarCheck },
-  { name: 'Tồn kho', path: '/inventory', icon: Boxes },
-  { name: 'Hủy hàng', path: '/inventory-loss', icon: Trash2 },
-  { name: 'Báo cáo', path: '/reports', icon: BarChart3 },
+  { name: 'Sản phẩm', path: '/products', icon: Package, permission: 'product.view' },
+  { name: 'Danh mục hàng hóa', path: '/categories', icon: Layers, permission: 'category.manage' },
+  { name: 'Nhập hàng', path: '/purchases', icon: Truck, permission: 'purchase.order.view' },
+  { name: 'Bán hàng (POS)', path: '/pos', icon: ShoppingCart, permission: 'sales.pos.access' },
+  { name: 'Hóa đơn', path: '/invoices', icon: Receipt, permission: 'sales.invoice.view' },
+  { name: 'Khách hàng', path: '/customers', icon: Users, permission: 'customer.view' },
+  { name: 'Thành viên', path: '/loyalty', icon: Award, permission: 'loyalty.points.view' },
+  { name: 'Nhân viên', path: '/employees', icon: UserCheck, permission: 'hr.employee.view' },
+  { name: 'Ca làm việc', path: '/shifts', icon: Clock, permission: 'hr.shift.view' },
+  { name: 'Phân ca', path: '/shift-assignments', icon: CalendarCheck, permission: 'hr.shift.assign' },
+  { name: 'Tồn kho', path: '/inventory', icon: Boxes, permission: 'inventory.view' },
+  { name: 'Hủy hàng', path: '/inventory-loss', icon: Trash2, permission: 'inventory.loss.view' },
+  { name: 'Báo cáo', path: '/reports', icon: BarChart3, permission: 'report.revenue.view' },
 ];
 
 export const MainLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user, logout, can } = useAuth();
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
+
+  const authorizedNavItems = navigationItems.filter(
+    item => !item.permission || can(item.permission),
+  );
 
   const currentNav = navigationItems.find(item =>
     item.path === '/' ? location.pathname === '/' : location.pathname.startsWith(item.path),
@@ -88,7 +101,7 @@ export const MainLayout: React.FC = () => {
 
         {/* Navigation list */}
         <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
-          {navigationItems.map(item => {
+          {authorizedNavItems.map(item => {
             const Icon = item.icon;
             const isActive =
               item.path === '/'
@@ -158,19 +171,21 @@ export const MainLayout: React.FC = () => {
               {currentNav && currentNav.path !== '/' && (
                 <>
                   <span className="text-gray-300">/</span>
-                  <span className="text-gray-900 font-semibold">{currentNav.name}</span>
+                  <span className="text-gray-800 font-semibold">{currentNav.name}</span>
                 </>
               )}
             </div>
           </div>
+
           <div className="flex items-center space-x-3">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              Scaffold Phase v1.0
-            </span>
+            <div className="hidden sm:flex items-center space-x-2 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
+              <span className="w-2 h-2 rounded-full bg-green-500 inline-block animate-pulse"></span>
+              <span>Gateway: Online (3000)</span>
+            </div>
           </div>
         </header>
 
-        {/* Page Content Outlet */}
+        {/* Content Body */}
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>

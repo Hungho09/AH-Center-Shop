@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@ql/contracts': path.resolve(__dirname, '../../libs/contracts/src'),
     },
   },
   server: {
